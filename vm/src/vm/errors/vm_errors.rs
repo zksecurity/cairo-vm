@@ -77,8 +77,6 @@ pub enum VirtualMachineError {
     InvalidOpcode(u64),
     #[error("Inconsistent auto-deduction for {}, expected {}, got {:?}", (*.0).0, (*.0).1, (*.0).2)]
     InconsistentAutoDeduction(Box<(BuiltinName, MaybeRelocatable, Option<MaybeRelocatable>)>),
-    #[error("Invalid hint encoding at pc: {0}")]
-    InvalidHintEncoding(Box<MaybeRelocatable>),
     #[error("Expected output builtin to be present")]
     NoOutputBuiltin,
     #[error("Expected range_check builtin to be present")]
