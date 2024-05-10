@@ -72,24 +72,36 @@ fn process_args(value: &str) -> Result<FuncArgs, String> {
     while let Some(value) = input.next() {
         // First argument in an array
         if value.starts_with('[') {
-            let mut array_arg =
-                vec![Felt252::from_dec_str(value.strip_prefix('[').unwrap()).unwrap()];
-            // Process following args in array
-            let mut array_end = false;
-            while !array_end {
-                if let Some(value) = input.next() {
-                    // Last arg in array
-                    if value.ends_with(']') {
-                        array_arg
-                            .push(Felt252::from_dec_str(value.strip_suffix(']').unwrap()).unwrap());
-                        array_end = true;
-                    } else {
-                        array_arg.push(Felt252::from_dec_str(value).unwrap())
+            if value.ends_with(']') {
+                if value.len() == 2 {
+                    args.push(FuncArg::Array(Vec::new()));
+                } else {
+                    args.push(FuncArg::Array(vec![Felt252::from_dec_str(
+                        value.strip_prefix('[').unwrap().strip_suffix(']').unwrap(),
+                    )
+                    .unwrap()]));
+                }
+            } else {
+                let mut array_arg =
+                    vec![Felt252::from_dec_str(value.strip_prefix('[').unwrap()).unwrap()];
+                // Process following args in array
+                let mut array_end = false;
+                while !array_end {
+                    if let Some(value) = input.next() {
+                        // Last arg in array
+                        if value.ends_with(']') {
+                            array_arg.push(
+                                Felt252::from_dec_str(value.strip_suffix(']').unwrap()).unwrap(),
+                            );
+                            array_end = true;
+                        } else {
+                            array_arg.push(Felt252::from_dec_str(value).unwrap())
+                        }
                     }
                 }
+                // Finalize array
+                args.push(FuncArg::Array(array_arg))
             }
-            // Finalize array
-            args.push(FuncArg::Array(array_arg))
         } else {
             // Single argument
             args.push(FuncArg::Single(Felt252::from_dec_str(value).unwrap()))
@@ -144,7 +156,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         layout: args.layout,
         trace_enabled: args.trace_file.is_some() || args.air_public_input.is_some(),
         args: &args.args.0,
-        finalize_builtins: args.air_private_input.is_some() || args.cairo_pie_output.is_some(),
+        finalize_builtins: args.air_public_input.is_some() || args.cairo_pie_output.is_some(),
         append_return_values: args.append_return_values,
     };
 
@@ -168,10 +180,10 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
         }
     };
 
-    let (runner, vm, _, serialized_output) = cairo_run_program(&sierra_program, cairo_run_config)?;
+    let (runner, _, serialized_output) = cairo_run_program(&sierra_program, cairo_run_config)?;
 
     if let Some(file_path) = args.air_public_input {
-        let json = runner.get_air_public_input(&vm)?.serialize_json()?;
+        let json = runner.get_air_public_input()?.serialize_json()?;
         std::fs::write(file_path, json)?;
     }
 
@@ -195,7 +207,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
             .to_string();
 
         let json = runner
-            .get_air_private_input(&vm)
+            .get_air_private_input()
             .to_serializable(trace_path, memory_path)
             .serialize_json()
             .map_err(PublicInputError::Serde)?;
@@ -203,7 +215,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<Option<String>, Error> {
     }
 
     if let Some(ref file_path) = args.cairo_pie_output {
-        runner.get_cairo_pie(&vm)?.write_zip_file(file_path)?
+        runner.get_cairo_pie()?.write_zip_file(file_path)?
     }
 
     if let Some(trace_path) = args.trace_file {
@@ -286,6 +298,8 @@ mod tests {
     #[case("null_ret.cairo", "null", None)]
     #[case("with_input/tensor.cairo", "1", Some("[2 2] [1 2 3 4]"))]
     #[case("with_input/array_input_sum.cairo", "12", Some("2 [1 2 3 4] 0 [9 8]"))]
+    #[case("with_input/array_length.cairo", "5", Some("[1 2 3 4] [1]"))]
+    #[case("with_input/array_length.cairo", "4", Some("[1 2 3 4] []"))]
     #[case("with_input/branching.cairo", "0", Some("17"))]
     #[case("with_input/branching.cairo", "1", Some("0"))]
     #[case("dictionaries.cairo", "1024", None)]

@@ -697,30 +697,23 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let program = Program::from_bytes(program_data, Some("main")).unwrap();
-        let mut runner = CairoRunner::new(&program, LayoutName::all_cairo, true).unwrap();
+        let mut runner = CairoRunner::new(&program, LayoutName::all_cairo, true, false).unwrap();
 
-        let mut vm = VirtualMachine::new(false);
-        let end = runner.initialize(&mut vm, false).unwrap();
+        let end = runner.initialize(false).unwrap();
         // Modify add_mod & mul_mod params
-        for runner in vm.get_builtin_runners_as_mut() {
+        for runner in runner.vm.get_builtin_runners_as_mut() {
             if let BuiltinRunner::Mod(runner) = runner {
                 runner.override_layout_params(1, 3)
             }
         }
 
-        runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .unwrap();
-        runner
-            .run_for_steps(1, &mut vm, &mut hint_processor)
-            .unwrap();
-        runner
-            .end_run(false, false, &mut vm, &mut hint_processor)
-            .unwrap();
-        runner.read_return_values(&mut vm, false).unwrap();
-        runner.finalize_segments(&mut vm).unwrap();
+        runner.run_until_pc(end, &mut hint_processor).unwrap();
+        runner.run_for_steps(1, &mut hint_processor).unwrap();
+        runner.end_run(false, false, &mut hint_processor).unwrap();
+        runner.read_return_values(false).unwrap();
+        runner.finalize_segments().unwrap();
 
-        let air_private_input = runner.get_air_private_input(&vm);
+        let air_private_input = runner.get_air_private_input();
         assert_eq!(
             air_private_input.0.get(&BuiltinName::add_mod).unwrap()[0],
             PrivateInput::Mod(ModInput {

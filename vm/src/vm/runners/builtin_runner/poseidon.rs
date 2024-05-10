@@ -152,9 +152,8 @@ mod tests {
     use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
     use crate::utils::test_utils::*;
-    use crate::vm::runners::cairo_runner::CairoRunner;
 
-    use crate::vm::{runners::builtin_runner::BuiltinRunner, vm_core::VirtualMachine};
+    use crate::vm::runners::builtin_runner::BuiltinRunner;
     #[cfg(target_arch = "wasm32")]
     use wasm_bindgen_test::*;
 
@@ -285,10 +284,6 @@ mod tests {
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
-
         let program = program!(
             builtins = vec![BuiltinName::poseidon],
             data = vec_data!(
@@ -314,16 +309,20 @@ mod tests {
         );
 
         let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0]);
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 6)));
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
+            Ok((0, 6))
+        );
     }
 
     #[test]
@@ -331,8 +330,6 @@ mod tests {
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = PoseidonBuiltinRunner::new(Some(10), true).into();
 
-        let mut vm = vm!();
-
         let program = program!(
             builtins = vec![BuiltinName::poseidon],
             data = vec_data!(
@@ -361,13 +358,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(6));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(6));
     }
 
     #[test]

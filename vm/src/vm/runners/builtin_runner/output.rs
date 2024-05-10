@@ -207,10 +207,7 @@ mod tests {
 
     use crate::{
         utils::test_utils::*,
-        vm::{
-            errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner,
-            vm_core::VirtualMachine,
-        },
+        vm::{errors::memory_errors::MemoryError, runners::builtin_runner::BuiltinRunner},
     };
 
     #[cfg(target_arch = "wasm32")]

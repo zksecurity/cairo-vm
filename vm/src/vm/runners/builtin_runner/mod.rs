@@ -143,7 +143,13 @@ impl BuiltinRunner {
                 ))));
             }
             let stop_ptr = stop_pointer.offset;
-            let num_instances = self.get_used_instances(segments)?;
+            let mut num_instances = self.get_used_instances(segments)?;
+            if matches!(self, BuiltinRunner::SegmentArena(_)) {
+                // SegmentArena builtin starts with one instance pre-loaded
+                // This is reflected in the builtin base's offset, but as we compare `stop_ptr.offset` agains `used`
+                // instead of comparing `stop_ptr` against `base + used` we need to account for the base offset (aka the pre-loaded instance) here
+                num_instances += 1;
+            }
             let used = num_instances * self.cells_per_instance() as usize;
             if stop_ptr != used {
                 return Err(RunnerError::InvalidStopPointer(Box::new((
@@ -657,10 +663,9 @@ mod tests {
     use crate::relocatable;
     use crate::types::builtin_name::BuiltinName;
     use crate::types::program::Program;
+    use crate::utils::test_utils::*;
     use crate::vm::errors::memory_errors::InsufficientAllocatedCellsError;
-    use crate::vm::runners::cairo_runner::CairoRunner;
     use crate::vm::vm_memory::memory::MemoryCell;
-    use crate::{utils::test_utils::*, vm::vm_core::VirtualMachine};
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]
@@ -799,8 +804,6 @@ mod tests {
     fn get_allocated_memory_units_bitwise_with_items() {
         let builtin = BuiltinRunner::Bitwise(BitwiseBuiltinRunner::new(Some(10), true));
 
-        let mut vm = vm!();
-
         let program = program!(
             builtins = vec![BuiltinName::bitwise],
             data = vec_data!(
@@ -829,21 +832,19 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(5));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_ec_op_with_items() {
         let builtin = BuiltinRunner::EcOp(EcOpBuiltinRunner::new(Some(10), true));
-
-        let mut vm = vm!();
 
         let program = program!(
             builtins = vec![BuiltinName::ec_op],
@@ -873,21 +874,19 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(7));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(7));
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units_hash_with_items() {
         let builtin = BuiltinRunner::Hash(HashBuiltinRunner::new(Some(10), true));
-
-        let mut vm = vm!();
 
         let program = program!(
             builtins = vec![BuiltinName::pedersen],
@@ -917,13 +916,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(3));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(3));
     }
 
     #[test]
@@ -932,8 +931,6 @@ mod tests {
         let builtin = BuiltinRunner::RangeCheck(
             RangeCheckBuiltinRunner::<RC_N_PARTS_STANDARD>::new(Some(10), true),
         );
-
-        let mut vm = vm!();
 
         let program = program!(
             builtins = vec![BuiltinName::range_check],
@@ -963,13 +960,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(1));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(1));
     }
 
     #[test]

@@ -255,7 +255,6 @@ mod tests {
                 runner_errors::RunnerError,
             },
             runners::builtin_runner::BuiltinRunner,
-            vm_core::VirtualMachine,
             vm_memory::{memory::Memory, memory_segments::MemorySegmentManager},
         },
     };

@@ -12,7 +12,7 @@ std = []
 alloc = []
 
 [dependencies]
-cairo-vm = { workspace = true, features = ["arbitrary", "std"] }
+cairo-vm = { workspace = true, features = ["test_utils"] }
 thiserror-no-std = { workspace = true }
 num-bigint = { workspace = true }
 num-traits = { workspace = true }

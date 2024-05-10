@@ -135,11 +135,9 @@ mod tests {
     use super::*;
 
     use crate::{
-        hint_processor::hint_processor_definition::HintReference,
-        relocatable,
-        serde::deserialize_program::OffsetValue,
-        utils::test_utils::*,
-        vm::{vm_core::VirtualMachine, vm_memory::memory::Memory},
+        hint_processor::hint_processor_definition::HintReference, relocatable,
+        serde::deserialize_program::OffsetValue, utils::test_utils::*,
+        vm::vm_memory::memory::Memory,
     };
     use assert_matches::assert_matches;
 

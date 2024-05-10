@@ -210,7 +210,7 @@ dependencies = [
 
 [[package]]
 name = "cairo-vm"
-version = "1.0.0-rc1"
+version = "1.0.0-rc2"
 dependencies = [
  "anyhow",
  "arbitrary",

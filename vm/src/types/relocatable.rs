@@ -11,10 +11,10 @@ use crate::{
 use num_traits::ToPrimitive;
 use serde::{Deserialize, Serialize};
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::Arbitrary;
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(
     Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Copy, Debug, Serialize, Deserialize, Default,
 )]
@@ -23,7 +23,7 @@ pub struct Relocatable {
     pub offset: usize,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Eq, Ord, Hash, PartialEq, PartialOrd, Clone, Serialize, Deserialize)]
 pub enum MaybeRelocatable {
     RelocatableValue(Relocatable),

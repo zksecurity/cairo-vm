@@ -198,8 +198,8 @@ mod tests {
             layout: LayoutName::all_cairo,
             ..Default::default()
         };
-        let (runner, vm) = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
-        let public_input = runner.get_air_public_input(&vm).unwrap();
+        let runner = crate::cairo_run::cairo_run(program_content, &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
+        let public_input = runner.get_air_public_input().unwrap();
         // We already know serialization works as expected due to the comparison against python VM
         let serialized_public_input = public_input.serialize_json().unwrap();
         let deserialized_public_input: PublicInput =

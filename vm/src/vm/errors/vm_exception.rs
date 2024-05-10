@@ -13,7 +13,7 @@ use crate::{
     hint_processor::hint_processor_utils::get_maybe_relocatable_from_reference,
     serde::deserialize_program::{ApTracking, Attribute, Location, OffsetValue},
     types::{instruction::Register, relocatable::MaybeRelocatable},
-    vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
+    vm::runners::cairo_runner::CairoRunner,
 };
 
 use super::vm_errors::VirtualMachineError;
@@ -27,14 +27,10 @@ pub struct VmException {
 }
 
 impl VmException {
-    pub fn from_vm_error(
-        runner: &CairoRunner,
-        vm: &VirtualMachine,
-        error: VirtualMachineError,
-    ) -> Self {
-        let pc = vm.run_context.pc;
+    pub fn from_vm_error(runner: &CairoRunner, error: VirtualMachineError) -> Self {
+        let pc = runner.vm.run_context.pc;
         let error_attr_value = if pc.segment_index == 0 {
-            get_error_attr_value(pc.offset, runner, vm)
+            get_error_attr_value(pc.offset, runner)
         } else {
             None
         };
@@ -52,22 +48,18 @@ impl VmException {
             },
             inner_exc: error,
             error_attr_value,
-            traceback: get_traceback(vm, runner),
+            traceback: get_traceback(runner),
         }
     }
 }
 
-pub fn get_error_attr_value(
-    pc: usize,
-    runner: &CairoRunner,
-    vm: &VirtualMachine,
-) -> Option<String> {
+pub fn get_error_attr_value(pc: usize, runner: &CairoRunner) -> Option<String> {
     let mut errors = String::new();
     for attribute in &runner.program.shared_program_data.error_message_attributes {
         if attribute.start_pc <= pc && attribute.end_pc > pc {
             errors.push_str(&format!(
                 "Error message: {}\n",
-                substitute_error_message_references(attribute, runner, vm)
+                substitute_error_message_references(attribute, runner)
             ));
         }
     }
@@ -100,12 +92,12 @@ pub fn get_location(
 }
 
 // Returns the traceback at the current pc.
-pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String> {
+pub fn get_traceback(runner: &CairoRunner) -> Option<String> {
     let mut traceback = String::new();
-    for (_fp, traceback_pc) in vm.get_traceback_entries() {
+    for (_fp, traceback_pc) in runner.vm.get_traceback_entries() {
         if let (0, Some(ref attr)) = (
             traceback_pc.segment_index,
-            get_error_attr_value(traceback_pc.offset, runner, vm),
+            get_error_attr_value(traceback_pc.offset, runner),
         ) {
             traceback.push_str(attr)
         }
@@ -129,7 +121,6 @@ pub fn get_traceback(vm: &VirtualMachine, runner: &CairoRunner) -> Option<String
 fn substitute_error_message_references(
     error_message_attr: &Attribute,
     runner: &CairoRunner,
-    vm: &VirtualMachine,
 ) -> String {
     let mut error_msg = error_message_attr.value.clone();
     if let Some(tracking_data) = &error_message_attr.flow_tracking_data {
@@ -147,12 +138,7 @@ fn substitute_error_message_references(
             // Look for the formated name inside the error message
             if error_msg.contains(&formated_variable_name) {
                 // Get the value of the cairo variable from its reference id
-                match get_value_from_simple_reference(
-                    *ref_id,
-                    &tracking_data.ap_tracking,
-                    runner,
-                    vm,
-                ) {
+                match get_value_from_simple_reference(*ref_id, &tracking_data.ap_tracking, runner) {
                     Some(cairo_variable) => {
                         // Replace the value in the error message
                         error_msg =
@@ -183,7 +169,6 @@ fn get_value_from_simple_reference(
     ref_id: usize,
     ap_tracking: &ApTracking,
     runner: &CairoRunner,
-    vm: &VirtualMachine,
 ) -> Option<MaybeRelocatable> {
     let reference = runner
         .program
@@ -197,7 +182,7 @@ fn get_value_from_simple_reference(
             // Filer complex types (only felt/felt pointers)
             match reference.cairo_type {
                 Some(ref cairo_type) if cairo_type.contains("felt") => Some(
-                    get_maybe_relocatable_from_reference(vm, reference, ap_tracking)?,
+                    get_maybe_relocatable_from_reference(&runner.vm, reference, ap_tracking)?,
                 ),
                 _ => None,
             }
@@ -349,7 +334,7 @@ mod test {
         );
         let runner = cairo_runner!(program);
         assert_matches!(
-            VmException::from_vm_error(&runner, &vm!(), VirtualMachineError::NoImm,),
+            VmException::from_vm_error(&runner, VirtualMachineError::NoImm,),
             VmException {
                 pc: x,
                 inst_location: Some(y),
@@ -541,9 +526,8 @@ mod test {
         }];
         let program = program!(error_message_attributes = attributes,);
         let runner = cairo_runner!(program);
-        let vm = vm!();
         assert_eq!(
-            get_error_attr_value(2, &runner, &vm),
+            get_error_attr_value(2, &runner),
             Some(String::from("Error message: Invalid hash\n"))
         );
     }
@@ -560,8 +544,7 @@ mod test {
         }];
         let program = program!(error_message_attributes = attributes,);
         let runner = cairo_runner!(program);
-        let vm = vm!();
-        assert_eq!(get_error_attr_value(5, &runner, &vm), None);
+        assert_eq!(get_error_attr_value(5, &runner), None);
     }
 
     #[test]
@@ -658,12 +641,9 @@ mod test {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_err());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
 
         #[cfg(feature = "std")]
         let expected_traceback = String::from("Cairo traceback (most recent call last):\ncairo_programs/bad_programs/bad_dict_update.cairo:10:5: (pc=0:34)\n    dict_update{dict_ptr=my_dict}(key=2, prev_value=3, new_value=4);\n    ^*************************************************************^\n");
@@ -672,13 +652,10 @@ mod test {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_err());
-        assert_eq!(get_traceback(&vm, &cairo_runner), Some(expected_traceback));
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
+        assert_eq!(get_traceback(&cairo_runner), Some(expected_traceback));
     }
 
     #[test]
@@ -710,14 +687,11 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_err());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
         assert_eq!(
-            get_traceback(&vm, &cairo_runner),
+            get_traceback(&cairo_runner),
             Some(expected_traceback.to_string())
         );
     }
@@ -869,13 +843,12 @@ cairo_programs/bad_programs/bad_range_check.cairo:11:5: (pc=0:6)
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
+        let end = cairo_runner.initialize(false).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut hint_processor)
             .unwrap_err();
-        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
     }
 
@@ -914,13 +887,12 @@ cairo_programs/bad_programs/bad_usort.cairo:64:5: (pc=0:60)
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
+        let end = cairo_runner.initialize(false).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut hint_processor)
             .unwrap_err();
-        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
     }
 
@@ -953,13 +925,12 @@ cairo_programs/bad_programs/ec_recover_product_mod_m_zero.cairo:11:5: (pc=0:18)
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
+        let end = cairo_runner.initialize(false).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut hint_processor)
             .unwrap_err();
-        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
     }
 
@@ -992,13 +963,12 @@ cairo_programs/bad_programs/ec_recover_div_mod_n_packed_n_zero.cairo:11:5: (pc=0
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
+        let end = cairo_runner.initialize(false).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut hint_processor)
             .unwrap_err();
-        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
     }
 
@@ -1031,13 +1001,12 @@ cairo_programs/bad_programs/uint512_unsigned_div_rem_div_is_zero.cairo:15:2: (pc
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
+        let end = cairo_runner.initialize(false).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut hint_processor)
             .unwrap_err();
-        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
     }
 
@@ -1068,13 +1037,12 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program, LayoutName::all_cairo, false);
-        let mut vm = vm!();
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
+        let end = cairo_runner.initialize(false).unwrap();
         let error = cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
+            .run_until_pc(end, &mut hint_processor)
             .unwrap_err();
-        let vm_excepction = VmException::from_vm_error(&cairo_runner, &vm, error);
+        let vm_excepction = VmException::from_vm_error(&cairo_runner, error);
         assert_eq!(vm_excepction.to_string(), expected_error_string);
     }
 
@@ -1089,10 +1057,9 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         // This program uses a tempvar inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
-        let vm = vm!();
         // Ref id 0 corresponds to __main__.main.x, our tempvar
         assert_eq!(
-            get_value_from_simple_reference(0, &ApTracking::default(), &runner, &vm),
+            get_value_from_simple_reference(0, &ApTracking::default(), &runner),
             None
         )
     }
@@ -1108,10 +1075,9 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         // This program uses a tempvar inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
-        let vm = vm!();
         let attribute = &program.shared_program_data.error_message_attributes[0];
         assert_eq!(
-            substitute_error_message_references(attribute, &runner, &vm),
+            substitute_error_message_references(attribute, &runner),
             format!(
                 "{} (Cannot evaluate ap-based or complex references: ['x'])",
                 attribute.value
@@ -1130,10 +1096,9 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         // This program uses a struct inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
-        let vm = vm!();
         // Ref id 0 corresponds to __main__.main.cat, our struct
         assert_eq!(
-            get_value_from_simple_reference(0, &ApTracking::default(), &runner, &vm),
+            get_value_from_simple_reference(0, &ApTracking::default(), &runner),
             None
         )
     }
@@ -1149,10 +1114,9 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         // This program uses a struct inside an error attribute
         // This reference should be rejected when substituting the error attribute references
         let runner = cairo_runner!(program);
-        let vm = vm!();
         let attribute = &program.shared_program_data.error_message_attributes[0];
         assert_eq!(
-            substitute_error_message_references(attribute, &runner, &vm),
+            substitute_error_message_references(attribute, &runner),
             format!(
                 "{} (Cannot evaluate ap-based or complex references: ['cat'])",
                 attribute.value
@@ -1180,11 +1144,10 @@ cairo_programs/bad_programs/uint256_sub_b_gt_256.cairo:10:2: (pc=0:12)
         };
         let program =
             program!(instruction_locations = Some(HashMap::from([(5, instruction_location)])),);
-        let runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.set_pc(pc);
+        let mut runner = cairo_runner!(program);
+        runner.vm.set_pc(pc);
         assert_matches!(
-            VmException::from_vm_error(&runner, &vm, VirtualMachineError::NoImm,),
+            VmException::from_vm_error(&runner, VirtualMachineError::NoImm,),
             VmException {
                 pc: x,
                 inst_location: None,

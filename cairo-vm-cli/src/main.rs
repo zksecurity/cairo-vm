@@ -15,8 +15,6 @@ use cairo_vm::vm::runners::cairo_pie::CairoPie;
 use cairo_vm::vm::runners::cairo_runner::CairoRunner;
 use cairo_vm::vm::runners::cairo_runner::RunResources;
 #[cfg(feature = "with_tracer")]
-use cairo_vm::vm::vm_core::VirtualMachine;
-#[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::error::trace_data_errors::TraceDataError;
 #[cfg(feature = "with_tracer")]
 use cairo_vm_tracer::tracer::run_tracer;
@@ -134,8 +132,9 @@ impl FileWriter {
 }
 
 #[cfg(feature = "with_tracer")]
-fn start_tracer(cairo_runner: &CairoRunner, vm: &VirtualMachine) -> Result<(), TraceDataError> {
-    let relocation_table = vm
+fn start_tracer(cairo_runner: &CairoRunner) -> Result<(), TraceDataError> {
+    let relocation_table = cairo_runner
+        .vm
         .relocate_segments()
         .map_err(TraceDataError::FailedToGetRelocationTable)?;
     let instruction_locations = cairo_runner
@@ -174,7 +173,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
         ..Default::default()
     };
 
-    let (cairo_runner, mut vm) = match {
+    let mut cairo_runner = match {
         if args.run_from_cairo_pie {
             let pie = CairoPie::read_zip_file(&args.filename)?;
             let mut hint_processor = BuiltinHintProcessor::new(
@@ -197,7 +196,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
 
     if args.print_output {
         let mut output_buffer = "Program Output:\n".to_string();
-        vm.write_output(&mut output_buffer)?;
+        cairo_runner.vm.write_output(&mut output_buffer)?;
         print!("{output_buffer}");
     }
 
@@ -225,13 +224,13 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     }
 
     if let Some(file_path) = args.air_public_input {
-        let json = cairo_runner.get_air_public_input(&vm)?.serialize_json()?;
+        let json = cairo_runner.get_air_public_input()?.serialize_json()?;
         std::fs::write(file_path, json)?;
     }
 
     #[cfg(feature = "with_tracer")]
     if args.tracer {
-        start_tracer(&cairo_runner, &vm)?;
+        start_tracer(&cairo_runner)?;
     }
 
     if let (Some(file_path), Some(ref trace_file), Some(ref memory_file)) =
@@ -252,7 +251,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
             .to_string();
 
         let json = cairo_runner
-            .get_air_private_input(&vm)
+            .get_air_private_input()
             .to_serializable(trace_path, memory_path)
             .serialize_json()
             .map_err(PublicInputError::Serde)?;
@@ -262,7 +261,7 @@ fn run(args: impl Iterator<Item = String>) -> Result<(), Error> {
     if let Some(ref file_name) = args.cairo_pie_output {
         let file_path = Path::new(file_name);
         cairo_runner
-            .get_cairo_pie(&vm)
+            .get_cairo_pie()
             .map_err(CairoRunError::Runner)?
             .write_zip_file(file_path)?
     }

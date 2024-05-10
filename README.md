@@ -1,5 +1,7 @@
 <div align="center">
-<img src="./bonaparte.webp" height="150">
+<img src="./docs/images/cairovm.png#gh-light-mode-only" height="150">
+<img src="./docs/images/cairovm_white.png#gh-dark-mode-only" height="150">
+
 
 ### ⚡ Cairo-vm ⚡
 
@@ -209,9 +211,7 @@ When running a Cairo program directly using the Cairo-vm repository you would fi
 2. Instantiate the VM, the cairo_runner, the hint processor, and the entrypoint
 
   ```rust
-  let mut vm = VirtualMachine::new(false);
-
-  let mut cairo_runner = CairoRunner::new(&program, LayoutName::all_cairo, false);
+  let mut cairo_runner = CairoRunner::new(&program, LayoutName::all_cairo, false, false);
 
   let mut hint_processor = BuiltinHintProcessor::new_empty();
 
@@ -224,8 +224,8 @@ When running a Cairo program directly using the Cairo-vm repository you would fi
 3. Lastly, initialize the builtins and segments.
 
   ```rust
-  cairo_runner.initialize_builtins(&mut vm)?;
-  cairo_runner.initialize_segments(&mut vm, None);
+  cairo_runner.initialize_builtins(false)?;
+  cairo_runner.initialize_segments(None);
   ```
 
 When using cairo-vm with the Starknet devnet there are additional parameters that are part of the OS context passed on to the `run_from_entrypoint` method that we do not have here when using it directly. These parameters are, for example, initial stacks of the builtins, which are the base of each of them and are needed as they are the implicit arguments of the function.
@@ -238,7 +238,6 @@ When using cairo-vm with the Starknet devnet there are additional parameters tha
                 &MaybeRelocatable::from((2,0)).into() //this would be the output_ptr for example if our cairo function uses it
                 ],
             false,
-            &mut vm,
             &mut hint_processor,
         );
 ```

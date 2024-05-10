@@ -57,7 +57,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::HintProcessorData;
     use crate::hint_processor::hint_processor_definition::HintProcessorLogic;
     use crate::hint_processor::hint_processor_definition::HintReference;
-    use crate::vm::vm_core::VirtualMachine;
 
     use crate::{hint_processor::builtin_hint_processor::hint_code, utils::test_utils::*};
     use assert_matches::assert_matches;

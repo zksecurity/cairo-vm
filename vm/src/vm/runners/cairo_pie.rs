@@ -752,13 +752,13 @@ mod test {
                 layout: LayoutName::starknet_with_keccak,
                 ..Default::default()
             };
-            let (runner, vm) = crate::cairo_run::cairo_run(
+            let runner = crate::cairo_run::cairo_run(
                 program_content,
                 &cairo_run_config,
                 &mut BuiltinHintProcessor::new_empty(),
             )
             .unwrap();
-            runner.get_cairo_pie(&vm).unwrap()
+            runner.get_cairo_pie().unwrap()
         };
         // Serialize the CairoPie into a zip file
         let filename = format!("temp_file_{}", identifier); // Identifier used to avoid name clashes

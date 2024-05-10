@@ -40,7 +40,7 @@ fn cairo_run_dump_mem(json: String) -> PyResult<Vec<u8>> {
         PanicTriggered::new_err(format! {"Rust VM panicked! {:?}", e.downcast::<String>()})
     })?;
 
-    let (cairo_runner, _) =
+    let cairo_runner =
         result_no_panic.map_err(|e| VMError::new_err(format! {"VM error: {:?}", e.to_string()}))?;
 
     let mut memory_dump = Vec::new();

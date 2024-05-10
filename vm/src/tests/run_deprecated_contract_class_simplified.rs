@@ -326,7 +326,7 @@ fn run_deprecated_cc() {
     let mut hint_processor = SimplifiedOsHintProcessor::default();
     let program_content =
         include_bytes!("../../../cairo_programs/noretrocompat/starknet_os_deprecated_cc.json");
-    let (runner, _) = cairo_run(
+    let runner = cairo_run(
         program_content,
         &CairoRunConfig {
             trace_enabled: true,

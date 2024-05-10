@@ -90,7 +90,6 @@ mod tests {
     use super::*;
     use crate::types::builtin_name::BuiltinName;
     use crate::vm::errors::runner_errors::RunnerError;
-    use crate::vm::vm_core::VirtualMachine;
     use crate::{relocatable, utils::test_utils::*, vm::runners::builtin_runner::BuiltinRunner};
     #[cfg(not(feature = "std"))]
     use alloc::boxed::Box;
@@ -150,11 +149,17 @@ mod tests {
         vm.segments.segment_used_sizes = Some(vec![6]);
 
         let pointer = Relocatable::from((2, 2));
+        // USED_CELLS = SEGMENT_USED_SIZE - INITIAL_SIZE = 6 - 3 = 3
+        // NUM_INSTANCES = DIV_CEIL(USED_CELLS, CELLS_PER_INSTANCE) = DIV_CEIL(3, 3) = 1
+
+        // STOP_PTR == BASE + NUM_INSTANCES *  CELLS_PER_INSTANCE
+        // (0, 0) == (0, 3) + 1 * 3
+        // (0, 0) == (0, 6)
         assert_eq!(
             builtin.final_stack(&vm.segments, pointer),
             Err(RunnerError::InvalidStopPointer(Box::new((
                 BuiltinName::segment_arena,
-                relocatable!(0, 3),
+                relocatable!(0, 6),
                 relocatable!(0, 0)
             ))))
         );

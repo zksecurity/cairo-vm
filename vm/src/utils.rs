@@ -249,21 +249,35 @@ pub mod test_utils {
 
     macro_rules! cairo_runner {
         ($program:expr) => {
-            CairoRunner::new(
+            crate::vm::runners::cairo_runner::CairoRunner::new(
                 &$program,
                 crate::types::layout_name::LayoutName::all_cairo,
+                false,
                 false,
             )
             .unwrap()
         };
         ($program:expr, $layout:expr) => {
-            CairoRunner::new(&$program, $layout, false).unwrap()
+            crate::vm::runners::cairo_runner::CairoRunner::new(&$program, $layout, false, false)
+                .unwrap()
         };
         ($program:expr, $layout:expr, $proof_mode:expr) => {
-            CairoRunner::new(&$program, $layout, $proof_mode).unwrap()
+            crate::vm::runners::cairo_runner::CairoRunner::new(
+                &$program,
+                $layout,
+                $proof_mode,
+                false,
+            )
+            .unwrap()
         };
-        ($program:expr, $layout:expr, $proof_mode:expr) => {
-            CairoRunner::new(&program, $layout.to_string(), proof_mode).unwrap()
+        ($program:expr, $layout:expr, $proof_mode:expr, $trace_enabled:expr) => {
+            crate::vm::runners::cairo_runner::CairoRunner::new(
+                &$program,
+                $layout,
+                $proof_mode,
+                $trace_enabled,
+            )
+            .unwrap()
         };
     }
     pub(crate) use cairo_runner;
@@ -386,11 +400,11 @@ pub mod test_utils {
 
     macro_rules! vm {
         () => {{
-            VirtualMachine::new(false)
+            crate::vm::vm_core::VirtualMachine::new(false)
         }};
 
         ($use_trace:expr) => {{
-            VirtualMachine::new($use_trace)
+            crate::vm::vm_core::VirtualMachine::new($use_trace)
         }};
     }
     pub(crate) use vm;
@@ -639,7 +653,7 @@ mod test {
         serde::deserialize_program::ReferenceManager,
         types::{exec_scope::ExecutionScopes, program::Program, relocatable::MaybeRelocatable},
         utils::test_utils::*,
-        vm::{trace::trace_entry::TraceEntry, vm_core::VirtualMachine, vm_memory::memory::Memory},
+        vm::{trace::trace_entry::TraceEntry, vm_memory::memory::Memory},
     };
 
     #[cfg(target_arch = "wasm32")]

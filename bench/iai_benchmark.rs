@@ -3,7 +3,7 @@ use iai_callgrind::main;
 
 use cairo_vm::{
     types::{layout_name::LayoutName, program::Program},
-    vm::{runners::cairo_runner::CairoRunner, vm_core::VirtualMachine},
+    vm::runners::cairo_runner::CairoRunner,
 };
 
 use mimalloc::MiMalloc;
@@ -31,26 +31,29 @@ fn parse_program_helper() -> Program {
 #[inline(never)]
 fn build_runner() {
     let program = parse_program_helper();
-    let runner =
-        CairoRunner::new(black_box(&program), LayoutName::starknet_with_keccak, false).unwrap();
+    let runner = CairoRunner::new(
+        black_box(&program),
+        LayoutName::starknet_with_keccak,
+        false,
+        false,
+    )
+    .unwrap();
     core::mem::drop(black_box(runner));
 }
 
 #[export_name = "helper::build_runner"]
 #[inline(never)]
-fn build_runner_helper() -> (CairoRunner, VirtualMachine) {
+fn build_runner_helper() -> CairoRunner {
     //Picked the biggest one at the time of writing
     let program = include_bytes!("../cairo_programs/benchmarks/keccak_integration_benchmark.json");
     let program = Program::from_bytes(program.as_slice(), Some("main")).unwrap();
-    let runner = CairoRunner::new(&program, LayoutName::starknet_with_keccak, false).unwrap();
-    let vm = VirtualMachine::new(false);
-    (runner, vm)
+    CairoRunner::new(&program, LayoutName::starknet_with_keccak, false, false).unwrap()
 }
 
 #[inline(never)]
 fn load_program_data() {
-    let (mut runner, mut vm) = build_runner_helper();
-    _ = black_box(runner.initialize(black_box(&mut vm), false).unwrap());
+    let mut runner = build_runner_helper();
+    _ = black_box(runner.initialize(false).unwrap());
 }
 
 main!(

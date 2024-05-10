@@ -171,11 +171,10 @@ mod tests {
     use crate::types::builtin_name::BuiltinName;
     use crate::vm::errors::memory_errors::MemoryError;
     use crate::vm::runners::builtin_runner::BuiltinRunner;
-    use crate::vm::vm_core::VirtualMachine;
     use crate::Felt252;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        types::program::Program, utils::test_utils::*, vm::runners::cairo_runner::CairoRunner,
+        types::program::Program, utils::test_utils::*,
     };
 
     #[cfg(target_arch = "wasm32")]
@@ -185,7 +184,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_instances() {
         let builtin = BitwiseBuiltinRunner::new(Some(10), true);
-
         let mut vm = vm!();
 
         vm.segments = segments![
@@ -204,7 +202,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
         let mut vm = vm!();
 
         vm.segments = segments![
@@ -228,7 +225,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_stop_pointer() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
         let mut vm = vm!();
 
         vm.segments = segments![
@@ -256,7 +252,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_when_notincluded() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), false).into();
-
         let mut vm = vm!();
 
         vm.segments = segments![
@@ -280,7 +275,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn final_stack_error_non_relocatable() {
         let mut builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
         let mut vm = vm!();
 
         vm.segments = segments![
@@ -304,10 +298,6 @@ mod tests {
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_used_cells_and_allocated_size_test() {
         let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
-        let mut vm = vm!();
-
-        vm.segments.segment_used_sizes = Some(vec![0]);
 
         let program = program!(
             builtins = vec![BuiltinName::bitwise],
@@ -334,24 +324,26 @@ mod tests {
         );
 
         let mut cairo_runner = cairo_runner!(program);
+        cairo_runner.vm.segments.segment_used_sizes = Some(vec![0]);
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_used_cells_and_allocated_size(&vm), Ok((0, 5)));
+        assert_eq!(
+            builtin.get_used_cells_and_allocated_size(&cairo_runner.vm),
+            Ok((0, 5))
+        );
     }
 
     #[test]
     #[cfg_attr(target_arch = "wasm32", wasm_bindgen_test)]
     fn get_allocated_memory_units() {
         let builtin: BuiltinRunner = BitwiseBuiltinRunner::new(Some(10), true).into();
-
-        let mut vm = vm!();
 
         let program = program!(
             builtins = vec![BuiltinName::pedersen, BuiltinName::bitwise],
@@ -381,13 +373,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
 
-        let address = cairo_runner.initialize(&mut vm, false).unwrap();
+        let address = cairo_runner.initialize(false).unwrap();
 
         cairo_runner
-            .run_until_pc(address, &mut vm, &mut hint_processor)
+            .run_until_pc(address, &mut hint_processor)
             .unwrap();
 
-        assert_eq!(builtin.get_allocated_memory_units(&vm), Ok(5));
+        assert_eq!(builtin.get_allocated_memory_units(&cairo_runner.vm), Ok(5));
     }
 
     #[test]

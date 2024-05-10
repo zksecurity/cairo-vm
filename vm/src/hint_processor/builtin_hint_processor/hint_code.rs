@@ -1427,15 +1427,18 @@ if x % 2 != 0:
     x = PRIME - x
 ids.x.low = x & ((1<<128)-1)
 ids.x.high = x >> 128";
-#[cfg(feature = "skip_next_instruction_hint")]
+#[cfg(feature = "test_utils")]
 pub const SKIP_NEXT_INSTRUCTION: &str = "skip_next_instruction()";
 
+#[cfg(feature = "test_utils")]
 pub const PRINT_FELT: &str = "print(ids.x)";
 
+#[cfg(feature = "test_utils")]
 pub const PRINT_ARR: &str = r#"print(bytes.fromhex(f"{ids.name:062x}").decode().replace('\x00',''))
 arr = [memory[ids.arr + i] for i in range(ids.arr_len)]
 print(arr)"#;
 
+#[cfg(feature = "test_utils")]
 pub const PRINT_DICT: &str = r#"print(bytes.fromhex(f"{ids.name:062x}").decode().replace('\x00',''))
 data = __dict_manager.get_dict(ids.dict_ptr)
 print(

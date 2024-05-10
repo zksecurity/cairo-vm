@@ -84,7 +84,6 @@ mod test {
     use crate::stdlib::collections::HashMap;
     use crate::types::exec_scope::ExecutionScopes;
     use crate::utils::test_utils::*;
-    use crate::vm::vm_core::VirtualMachine;
     use num_bigint::BigInt;
     use num_traits::One;
     use num_traits::Zero;

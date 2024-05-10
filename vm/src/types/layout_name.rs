@@ -1,4 +1,4 @@
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
 #[cfg(all(feature = "clap", feature = "std"))]
 use clap::{builder::PossibleValue, ValueEnum};
@@ -6,7 +6,7 @@ use core::fmt::{self, Display};
 use serde::{Deserialize, Serialize};
 
 /// Enum representing the name of a Cairo Layout
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum LayoutName {

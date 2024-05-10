@@ -4,10 +4,10 @@ use serde::{Deserialize, Serialize};
 
 use crate::vm::decoding::decoder::decode_instruction;
 
-#[cfg(feature = "arbitrary")]
+#[cfg(feature = "test_utils")]
 use arbitrary::Arbitrary;
 
-#[cfg_attr(feature = "arbitrary", derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Copy, Clone, Debug, PartialEq, Eq)]
 pub enum Register {
     AP,

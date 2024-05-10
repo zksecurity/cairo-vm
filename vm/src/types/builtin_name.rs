@@ -1,6 +1,6 @@
 use serde::{Deserialize, Serialize};
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary};
 
 // Internal constants
@@ -31,7 +31,7 @@ const ADD_MOD_BUILTIN_NAME_WITH_SUFFIX: &str = "add_mod_builtin";
 const MUL_MOD_BUILTIN_NAME_WITH_SUFFIX: &str = "mul_mod_builtin";
 
 /// Enum representing the name of a cairo builtin
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Copy, Clone, Eq, Hash)]
 #[allow(non_camel_case_types)]
 pub enum BuiltinName {

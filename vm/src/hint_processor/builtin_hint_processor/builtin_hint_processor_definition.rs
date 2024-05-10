@@ -114,10 +114,10 @@ use crate::{
     vm::{errors::hint_errors::HintError, vm_core::VirtualMachine},
 };
 
-#[cfg(feature = "skip_next_instruction_hint")]
+#[cfg(feature = "test_utils")]
 use crate::hint_processor::builtin_hint_processor::skip_next_instruction::skip_next_instruction;
 
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 use crate::hint_processor::builtin_hint_processor::print::{print_array, print_dict, print_felt};
 use crate::hint_processor::builtin_hint_processor::secp::secp_utils::{
     SECP256R1_ALPHA, SECP256R1_P,
@@ -856,13 +856,13 @@ impl HintProcessorLogic for BuiltinHintProcessor {
                     constants,
                 )
             }
-            #[cfg(feature = "skip_next_instruction_hint")]
+            #[cfg(feature = "test_utils")]
             hint_code::SKIP_NEXT_INSTRUCTION => skip_next_instruction(vm),
-            #[cfg(feature = "print")]
+            #[cfg(feature = "test_utils")]
             hint_code::PRINT_FELT => print_felt(vm, &hint_data.ids_data, &hint_data.ap_tracking),
-            #[cfg(feature = "print")]
+            #[cfg(feature = "test_utils")]
             hint_code::PRINT_ARR => print_array(vm, &hint_data.ids_data, &hint_data.ap_tracking),
-            #[cfg(feature = "print")]
+            #[cfg(feature = "test_utils")]
             hint_code::PRINT_DICT => {
                 print_dict(vm, exec_scopes, &hint_data.ids_data, &hint_data.ap_tracking)
             }

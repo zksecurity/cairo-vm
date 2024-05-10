@@ -13,7 +13,7 @@ members = ["."]
 
 [dependencies]
 arbitrary = { version = "1.3.0", features = ["derive"] }
-cairo-vm = { path = "../vm", features = ["arbitrary"] }
+cairo-vm = { path = "../vm", features = ["test_utils"] }
 honggfuzz = "0.5.55"
 libfuzzer-sys = "0.4"
 num-bigint = "0.4"

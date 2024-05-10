@@ -205,7 +205,7 @@ impl DictTracker {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::{relocatable, utils::test_utils::*, vm::vm_core::VirtualMachine};
+    use crate::{relocatable, utils::test_utils::*};
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]

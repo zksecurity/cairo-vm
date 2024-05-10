@@ -295,8 +295,8 @@ mod tests {
             layout: LayoutName::small,
             ..Default::default()
         };
-        let (runner, vm) = crate::cairo_run::cairo_run(include_bytes!("../../cairo_programs/proof_programs/fibonacci.json"), &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
-        let public_input = runner.get_air_private_input(&vm);
+        let runner = crate::cairo_run::cairo_run(include_bytes!("../../cairo_programs/proof_programs/fibonacci.json"), &config, &mut crate::hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor::new_empty()).unwrap();
+        let public_input = runner.get_air_private_input();
         let serialized_public_input =
             public_input.to_serializable("/dev/null".to_string(), "/dev/null".to_string());
         assert!(serialized_public_input.pedersen.is_some());

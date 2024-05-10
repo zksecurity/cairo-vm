@@ -33,10 +33,10 @@ use num_traits::{float::FloatCore, Num};
 use serde::{de, de::MapAccess, de::SeqAccess, Deserialize, Deserializer, Serialize};
 use serde_json::Number;
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 use arbitrary::{self, Arbitrary, Unstructured};
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary, Clone))]
 #[derive(Deserialize, Debug)]
 pub struct ProgramJson {
     pub prime: String,
@@ -51,7 +51,7 @@ pub struct ProgramJson {
     pub debug_info: Option<DebugInfo>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct HintParams {
     pub code: String,
@@ -59,7 +59,7 @@ pub struct HintParams {
     pub flow_tracking_data: FlowTrackingData,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct FlowTrackingData {
     pub ap_tracking: ApTracking,
@@ -67,7 +67,7 @@ pub struct FlowTrackingData {
     pub reference_ids: HashMap<String, usize>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, Clone, PartialEq, Eq)]
 pub struct ApTracking {
     pub group: usize,
@@ -89,7 +89,7 @@ impl Default for ApTracking {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Identifier {
     pub pc: Option<usize>,
@@ -104,24 +104,21 @@ pub struct Identifier {
     pub cairo_type: Option<String>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Member {
     pub cairo_type: String,
     pub offset: usize,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Clone, Debug, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Attribute {
     pub name: String,
     pub start_pc: usize,
     pub end_pc: usize,
     pub value: String,
-    #[cfg_attr(
-        all(feature = "arbitrary", feature = "std"),
-        serde(skip_serializing_if = "Option::is_none")
-    )]
+    #[cfg_attr(feature = "test_utils", serde(skip_serializing_if = "Option::is_none"))]
     pub flow_tracking_data: Option<FlowTrackingData>,
 }
 
@@ -135,14 +132,14 @@ pub struct Location {
     pub start_col: u32,
 }
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 impl<'a> Arbitrary<'a> for Location {
     fn arbitrary(u: &mut Unstructured<'a>) -> arbitrary::Result<Self> {
         arbitrary_parent_location(u, 20)
     }
 }
 
-#[cfg(all(feature = "arbitrary", feature = "std"))]
+#[cfg(feature = "test_utils")]
 fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Result<Location> {
     let parent_location = if depth > 0 {
         Some((
@@ -162,7 +159,7 @@ fn arbitrary_parent_location(u: &mut Unstructured, depth: u8) -> arbitrary::Resu
     })
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary, Clone))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary, Clone))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq)]
 pub struct DebugInfo {
     pub(crate) instruction_locations: HashMap<usize, InstructionLocation>,
@@ -179,14 +176,14 @@ impl DebugInfo {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct InstructionLocation {
     pub inst: Location,
     pub hints: Vec<HintLocation>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Clone, Debug, PartialEq, Eq)]
 pub struct InputFile {
     pub filename: String,
@@ -203,7 +200,7 @@ impl InputFile {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct HintLocation {
     pub location: Location,
@@ -251,13 +248,13 @@ fn deserialize_scientific_notation(n: Number) -> Option<Felt252> {
     }
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone, Default)]
 pub struct ReferenceManager {
     pub references: Vec<Reference>,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct Reference {
     pub ap_tracking_data: ApTracking,
@@ -267,7 +264,7 @@ pub struct Reference {
     pub value_address: ValueAddress,
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub enum OffsetValue {
     Immediate(Felt252),
@@ -275,7 +272,7 @@ pub enum OffsetValue {
     Reference(Register, i32, bool),
 }
 
-#[cfg_attr(all(feature = "arbitrary", feature = "std"), derive(Arbitrary))]
+#[cfg_attr(feature = "test_utils", derive(Arbitrary))]
 #[derive(Serialize, Deserialize, Debug, PartialEq, Eq, Clone)]
 pub struct ValueAddress {
     pub offset1: OffsetValue,    // A in cast(A + B, type)

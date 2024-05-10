@@ -17,19 +17,10 @@ use crate::{
     hint_processor::hint_processor_definition::HintProcessor, types::exec_scope::ExecutionScopes,
 };
 
-use super::{
-    errors::vm_errors::VirtualMachineError, runners::cairo_runner::CairoRunner,
-    vm_core::VirtualMachine,
-};
+use super::{errors::vm_errors::VirtualMachineError, vm_core::VirtualMachine};
 
 type BeforeFirstStepHookFunc = Arc<
-    dyn Fn(
-            &mut VirtualMachine,
-            &mut CairoRunner,
-            &[Box<dyn Any>],
-        ) -> Result<(), VirtualMachineError>
-        + Sync
-        + Send,
+    dyn Fn(&mut VirtualMachine, &[Box<dyn Any>]) -> Result<(), VirtualMachineError> + Sync + Send,
 >;
 
 type StepHookFunc = Arc<
@@ -71,11 +62,10 @@ impl Hooks {
 impl VirtualMachine {
     pub fn execute_before_first_step(
         &mut self,
-        runner: &mut CairoRunner,
         hint_data: &[Box<dyn Any>],
     ) -> Result<(), VirtualMachineError> {
         if let Some(hook_func) = self.hooks.clone().before_first_step {
-            (hook_func)(self, runner, hint_data)?;
+            (hook_func)(self, hint_data)?;
         }
 
         Ok(())
@@ -115,8 +105,7 @@ mod tests {
     use super::*;
     use crate::{
         hint_processor::builtin_hint_processor::builtin_hint_processor_definition::BuiltinHintProcessor,
-        types::program::Program,
-        utils::test_utils::{cairo_runner, vm},
+        types::program::Program, utils::test_utils::cairo_runner,
     };
     #[test]
     fn empty_hooks() {
@@ -128,13 +117,10 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.hooks = Hooks::new(None, None, None);
+        cairo_runner.vm.hooks = Hooks::new(None, None, None);
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_ok());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_ok());
     }
 
     #[test]
@@ -147,7 +133,6 @@ mod tests {
 
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
-            _runner: &mut CairoRunner,
             _hint_data: &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError> {
             Err(VirtualMachineError::Unexpected)
@@ -176,35 +161,26 @@ mod tests {
         // Before first fail
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.hooks = Hooks::new(Some(Arc::new(before_first_step_hook)), None, None);
+        cairo_runner.vm.hooks = Hooks::new(Some(Arc::new(before_first_step_hook)), None, None);
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_err());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
 
         // Pre step fail
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.hooks = Hooks::new(None, Some(Arc::new(pre_step_hook)), None);
+        cairo_runner.vm.hooks = Hooks::new(None, Some(Arc::new(pre_step_hook)), None);
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_err());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
 
         // Post step fail
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.hooks = Hooks::new(None, None, Some(Arc::new(post_step_hook)));
+        cairo_runner.vm.hooks = Hooks::new(None, None, Some(Arc::new(post_step_hook)));
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_err());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_err());
     }
 
     #[test]
@@ -217,7 +193,6 @@ mod tests {
 
         fn before_first_step_hook(
             _vm: &mut VirtualMachine,
-            _runner: &mut CairoRunner,
             _hint_data: &[Box<dyn Any>],
         ) -> Result<(), VirtualMachineError> {
             Ok(())
@@ -245,16 +220,13 @@ mod tests {
 
         let mut hint_processor = BuiltinHintProcessor::new_empty();
         let mut cairo_runner = cairo_runner!(program);
-        let mut vm = vm!();
-        vm.hooks = Hooks::new(
+        cairo_runner.vm.hooks = Hooks::new(
             Some(Arc::new(before_first_step_hook)),
             Some(Arc::new(pre_step_hook)),
             Some(Arc::new(post_step_hook)),
         );
 
-        let end = cairo_runner.initialize(&mut vm, false).unwrap();
-        assert!(cairo_runner
-            .run_until_pc(end, &mut vm, &mut hint_processor)
-            .is_ok());
+        let end = cairo_runner.initialize(false).unwrap();
+        assert!(cairo_runner.run_until_pc(end, &mut hint_processor).is_ok());
     }
 }

@@ -5,7 +5,6 @@ use crate::{
     vm::{
         runners::{builtin_runner::BuiltinRunner, cairo_runner::CairoRunner},
         security::verify_secure_runner,
-        vm_core::VirtualMachine,
     },
 };
 
@@ -1012,8 +1011,8 @@ fn fibonacci_proof_mode_disable_trace_padding() {
         ..Default::default()
     };
     let mut hint_processor = BuiltinHintProcessor::new_empty();
-    let (r, v) = cairo_run(program_data, &config, &mut hint_processor).unwrap();
-    assert!(r.get_memory_holes(&v).unwrap().is_zero());
+    let runner = cairo_run(program_data, &config, &mut hint_processor).unwrap();
+    assert!(runner.get_memory_holes().unwrap().is_zero());
 }
 
 #[test]
@@ -1043,28 +1042,28 @@ fn divmod_igcdex_not_one() {
 }
 
 #[test]
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_felt() {
     let program_data = include_bytes!("../../../cairo_programs/print_feature/print_felt.json");
     run_program_simple(program_data);
 }
 
 #[test]
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_array() {
     let program_data = include_bytes!("../../../cairo_programs/print_feature/print_array.json");
     run_program_simple(program_data);
 }
 
 #[test]
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_dict_felt() {
     let program_data = include_bytes!("../../../cairo_programs/print_feature/print_dict_felt.json");
     run_program_simple(program_data);
 }
 
 #[test]
-#[cfg(feature = "print")]
+#[cfg(feature = "test_utils")]
 fn cairo_run_print_dict_array() {
     let program_data =
         include_bytes!("../../../cairo_programs/print_feature/print_dict_array.json");
@@ -1177,43 +1176,38 @@ fn run_program_with_custom_mod_builtin_params(
         &program,
         cairo_run_config.layout,
         cairo_run_config.proof_mode,
+        cairo_run_config.trace_enabled,
     )
     .unwrap();
 
-    let mut vm = VirtualMachine::new(cairo_run_config.trace_enabled);
-    let end = cairo_runner.initialize(&mut vm, false).unwrap();
+    let end = cairo_runner.initialize(false).unwrap();
     // Modify add_mod & mul_mod params
-    for runner in vm.get_builtin_runners_as_mut() {
+    for runner in cairo_runner.vm.get_builtin_runners_as_mut() {
         if let BuiltinRunner::Mod(runner) = runner {
             runner.override_layout_params(batch_size, word_bit_len)
         }
     }
 
-    cairo_runner
-        .run_until_pc(end, &mut vm, &mut hint_processor)
-        .unwrap();
+    cairo_runner.run_until_pc(end, &mut hint_processor).unwrap();
 
     if cairo_run_config.proof_mode {
-        cairo_runner
-            .run_for_steps(1, &mut vm, &mut hint_processor)
-            .unwrap();
+        cairo_runner.run_for_steps(1, &mut hint_processor).unwrap();
     }
     cairo_runner
         .end_run(
             cairo_run_config.disable_trace_padding,
             false,
-            &mut vm,
             &mut hint_processor,
         )
         .unwrap();
 
-    vm.verify_auto_deductions().unwrap();
-    cairo_runner.read_return_values(&mut vm, false).unwrap();
+    cairo_runner.vm.verify_auto_deductions().unwrap();
+    cairo_runner.read_return_values(false).unwrap();
     if cairo_run_config.proof_mode {
-        cairo_runner.finalize_segments(&mut vm).unwrap();
+        cairo_runner.finalize_segments().unwrap();
     }
     if !cairo_run_config.proof_mode {
-        let security_res = verify_secure_runner(&cairo_runner, true, None, &mut vm);
+        let security_res = verify_secure_runner(&cairo_runner, true, None);
         if let Some(error) = security_error {
             assert!(security_res.is_err());
             assert!(security_res.err().unwrap().to_string().contains(error));

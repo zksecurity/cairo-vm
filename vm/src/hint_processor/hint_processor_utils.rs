@@ -164,11 +164,7 @@ fn get_offset_value(
 mod tests {
     use super::*;
 
-    use crate::{
-        relocatable,
-        utils::test_utils::*,
-        vm::{vm_core::VirtualMachine, vm_memory::memory::Memory},
-    };
+    use crate::{relocatable, utils::test_utils::*, vm::vm_memory::memory::Memory};
     use assert_matches::assert_matches;
 
     #[cfg(target_arch = "wasm32")]

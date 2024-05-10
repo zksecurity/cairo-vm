@@ -131,7 +131,6 @@ mod tests {
     use crate::hint_processor::builtin_hint_processor::hint_code;
     use crate::hint_processor::hint_processor_definition::HintReference;
     use crate::utils::test_utils::*;
-    use crate::vm::vm_core::VirtualMachine;
     use crate::{
         any_box,
         hint_processor::{

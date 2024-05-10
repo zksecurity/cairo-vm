@@ -7,6 +7,6 @@ pub mod trace;
 pub mod vm_core;
 pub mod vm_memory;
 
-#[cfg(feature = "hooks")]
-#[cfg_attr(docsrs, doc(cfg(feature = "hooks")))]
+#[cfg(feature = "test_utils")]
+#[cfg_attr(docsrs, doc(cfg(feature = "test_utils")))]
 pub mod hooks;

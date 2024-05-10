@@ -39,7 +39,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
         ..Default::default()
     };
 
-    let (_runner, mut vm) = wrap_error!(cairo_run(
+    let mut runner = wrap_error!(cairo_run(
         PROGRAM_JSON,
         &cairo_run_config,
         &mut hint_executor
@@ -47,7 +47,7 @@ pub fn run_cairo_program() -> Result<String, JsError> {
 
     let mut buffer = String::new();
 
-    wrap_error!(vm.write_output(&mut buffer))?;
+    wrap_error!(runner.vm.write_output(&mut buffer))?;
 
     log(buffer.as_str());
 
