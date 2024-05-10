@@ -95,10 +95,10 @@ pub enum VirtualMachineError {
     ExpectedIntAtRange(Box<Option<MaybeRelocatable>>),
     #[error("Could not convert slice to array")]
     SliceToArrayError,
-    #[error("op1_addr is Op1Addr.IMM, but no immediate was given")]
-    NoImm,
     #[error("Failed to compile hint: {0}")]
     CompileHintFail(Box<str>),
+    #[error("op1_addr is Op1Addr.IMM, but no immediate was given")]
+    NoImm,
     #[error("Execution reached the end of the program. Requested remaining steps: {0}.")]
     EndOfProgram(usize),
     #[error("Could not reach the end of the program. RunResources has no remaining steps.")]
