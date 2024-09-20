@@ -414,6 +414,23 @@ impl Program {
         let program = parse_program_json(program_json, entrypoint)?;
         Ok(program)
     }
+
+    pub fn get_hints(&self) -> &[HintParams] {
+        self.shared_program_data.hints_collection.hints.as_slice()
+    }
+
+    #[cfg(feature = "extensive_hints")]
+    pub fn get_hints_ranges(&self) -> &HashMap<Relocatable, HintRange> {
+        &self.shared_program_data.hints_collection.hints_ranges
+    }
+
+    pub fn get_references(&self) -> &Vec<HintReference> {
+        &self.shared_program_data.reference_manager
+    }
+
+    pub fn get_constants(&self) -> &HashMap<String, Felt252> {
+        &self.constants
+    }
 }
 
 impl Default for Program {

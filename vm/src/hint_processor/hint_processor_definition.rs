@@ -70,9 +70,15 @@ pub trait HintProcessorLogic {
     }
 }
 
-// A map of hints that can be used to extend the current map of hints for the vm run
+// A map of hints that can be used to extend the current map of hints for the vm run and program constants that should be used when executing the hints
 // The map matches the pc at which the hints should be executed to a vec of compiled hints (Outputed by HintProcessor::CompileHint)
-pub type HintExtension = HashMap<Relocatable, Vec<Box<dyn Any>>>;
+pub type HintExtension = HashMap<Relocatable, ExtensionData>;
+
+#[derive(Default, Debug)]
+pub struct ExtensionData {
+    pub hints: Vec<Box<dyn Any>>,
+    pub constants: HashMap<String, Felt252>,
+}
 
 pub trait HintProcessor: HintProcessorLogic + ResourceTracker {}
 impl<T> HintProcessor for T where T: HintProcessorLogic + ResourceTracker {}
